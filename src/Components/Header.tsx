@@ -1,8 +1,14 @@
 import { Link, useMatch } from "react-router-dom";
 import styled from "styled-components";
-import { motion } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useAnimation,
+  useMotionValueEvent,
+} from "framer-motion";
+import { useState } from "react";
 
-const Nav = styled.nav`
+const Nav = styled(motion.nav)`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -47,7 +53,8 @@ const Item = styled.li`
     font-weight: bold;
   }
 `;
-const Circle = styled.span`
+const Circle = styled(motion.span)`
+  // layoutId를 위한 motion.span
   position: absolute;
   bottom: -5px;
   width: 5px;
@@ -56,11 +63,34 @@ const Circle = styled.span`
   background-color: ${(props) => props.theme.red};
 `;
 const Search = styled.span`
+  position: relative;
   color: white;
+  display: flex;
+  align-items: center;
+
   svg {
+    position: absolute;
+    right: 0;
     height: 25px;
   }
 `;
+
+const Input = styled(motion.input)`
+  transform-origin: right center; // 변화가 시작하는 위치
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+  padding: 5px 10px 5px 33px;
+`;
+
+const NavVariants = {
+  top: {
+    backgroundColor: "rgba(0,0,0,0)",
+  },
+  scroll: {
+    backgroundColor: "rgba(0,0,0,1)",
+  },
+};
 
 const LogoVariants = {
   normal: {
@@ -79,10 +109,21 @@ const LogoVariants = {
 };
 
 function Header() {
-  const homeMatch = useMatch("/");
+  const homeMatch = useMatch("/"); // React Router에서 현재 경로url이 특정 경로와 일치하는지 확인하는 훅
   const tvMatch = useMatch("tv");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const openSearch = () => setSearchOpen((current) => !current);
+  const navAnimation = useAnimation(); // 원하는 시점에 애니메이션을 실행하거나 중단 가능
+  const { scrollY } = useScroll(); // 현재의 스크롤 값
+  useMotionValueEvent(scrollY, "change", (y) => {
+    if (y < 0.1) {
+      navAnimation.start("top"); // 스크롤이 0일 때 'top' 애니메이션 실행
+    } else {
+      navAnimation.start("scroll"); // 스크롤 내려가면 scroll 애니메이션 실행
+    }
+  });
   return (
-    <Nav>
+    <Nav variants={NavVariants} animate={navAnimation} initial={"top"}>
       <Col>
         <Logo
           xmlns="http://www.w3.org/2000/svg"
@@ -99,22 +140,25 @@ function Header() {
         </Logo>
         <Items>
           <Link to="/">
-            <Item>
+            <Item style={{ fontWeight: homeMatch ? "bold" : "normal" }}>
               Home
-              {homeMatch ? <Circle /> : ""}
+              {homeMatch ? <Circle layoutId="circle" /> : ""}
             </Item>
           </Link>
           <Link to="tv">
-            <Item>
+            <Item style={{ fontWeight: tvMatch ? "bold" : "normal" }}>
               Tv Shows
-              {tvMatch ? <Circle /> : ""}
+              {tvMatch ? <Circle layoutId="circle" /> : ""}
             </Item>
           </Link>
         </Items>
       </Col>
       <Col>
         <Search>
-          <svg
+          <motion.svg
+            animate={{ x: searchOpen ? -160 : 0 }} // 돋보기 누를 때 아이콘 위치 변경
+            onClick={openSearch}
+            transition={{ type: "linear" }} // 애니메이션 속도 시작부터 끝까지 같은 속도로 움직이게 -> 기계적인 느낌
             fill="currentColor"
             viewBox="0 0 20 20"
             xmlns="http://www.w3.org/2000/svg"
@@ -124,7 +168,12 @@ function Header() {
               d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
               clipRule="evenodd"
             ></path>
-          </svg>
+          </motion.svg>
+          <Input
+            animate={{ scaleX: searchOpen ? 1 : 0 }} // 돋보기 누를 때 input창의 사이즈 조절
+            transition={{ type: "linear" }}
+            placeholder="title, actor, genre"
+          />
         </Search>
       </Col>
     </Nav>
