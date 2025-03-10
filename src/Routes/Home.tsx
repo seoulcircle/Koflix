@@ -47,6 +47,15 @@ const Row = styled(motion.div)`
   gap: 5px;
 `;
 
+const Overlay = styled(motion.div)`
+  background-color: rgba(0, 0, 0, 0.8);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+`;
+
 const Box = styled(motion.div)`
   cursor: pointer;
   &:first-child {
@@ -73,6 +82,44 @@ const Info = styled(motion.div)`
   justify-content: center;
   align-items: center;
   width: 100%;
+`;
+
+const BigMovie = styled(motion.div)`
+  position: fixed;
+  width: 60vw;
+  height: 70vh;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  overflow: hidden;
+  border-radius: 18px;
+  background-color: black;
+`;
+
+const BigMovieTitle = styled.h2`
+  color: black;
+  font-size: 46px;
+  color: ${(props) => props.theme.white.darker};
+  padding: 20px;
+  position: relative;
+  top: -90px;
+`;
+
+const BigMovieImg = styled.div`
+  background-position: center center;
+  width: 100%;
+  height: 400px;
+  background-size: cover;
+`;
+
+const BigMovieOverview = styled.p`
+  font-size: 18px;
+  padding: 20px;
+  color: ${(props) => props.theme.white.lighter};
+  position: relative;
+  top: -90px;
 `;
 
 const rowVariants = {
@@ -112,11 +159,16 @@ const InfoVariants = {
     },
   },
 };
+const overlayVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 0.7 },
+  exit: { opacity: 0 },
+};
 
 function Home() {
   const navigate = useNavigate(); // useNavigate 훅 사용
-  const bigMovieMatch = useMatch("/movies/:movieId");
-  console.log(bigMovieMatch);
+  const bigMovieMatch = useMatch("/movies/:movieId"); // 현재 url과 특정 패턴이 일치하는지 확인
+  // const { scrollY } = useScroll(); // 세로 스크롤의 위치 감지하여 bigbox 위치 고정
   const { data, isLoading } = useQuery<IGetMoviesResult>(
     ["movies", "nowPlaying"],
     getMovies
@@ -140,6 +192,11 @@ function Home() {
   const onBoxClicked = (movieId: number) => {
     navigate(`/movies/${movieId}`);
   };
+  const onOverlayClick = () => navigate("/"); // navigate로 경로 수정
+  const clickedMovie = data?.results.find(
+    // 클릭한 영화의 정보 알기 위해 id 매칭
+    (movie) => String(movie.id) === bigMovieMatch?.params.movieId
+  );
 
   return (
     <Wrapper style={{ height: "200vh" }}>
@@ -190,21 +247,33 @@ function Home() {
           </Slider>
           <AnimatePresence>
             {bigMovieMatch ? (
-              <motion.div
-                layoutId={bigMovieMatch.params.movieId}
-                style={{
-                  position: "absolute",
-                  width: "40vw",
-                  height: "50vh",
-                  backgroundColor: "red",
-                  top: 50,
-                  left: 0,
-                  right: 0,
-                  margin: "0 auto",
-                }}
-              >
-                {bigMovieMatch.params.movieId}
-              </motion.div>
+              <>
+                <Overlay
+                  onClick={onOverlayClick}
+                  variants={overlayVariants}
+                  animate="visible"
+                  initial="hidden"
+                  exit="exit"
+                />
+
+                <BigMovie layoutId={bigMovieMatch.params.movieId}>
+                  {clickedMovie && (
+                    <>
+                      <BigMovieImg
+                        style={{
+                          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 1)), url(${makeImgPath(
+                            clickedMovie.backdrop_path
+                          )})`,
+                        }}
+                      />
+                      <BigMovieTitle>{clickedMovie.title}</BigMovieTitle>
+                      <BigMovieOverview>
+                        {clickedMovie.overview}
+                      </BigMovieOverview>
+                    </>
+                  )}
+                </BigMovie>
+              </>
             ) : null}
           </AnimatePresence>
         </>
