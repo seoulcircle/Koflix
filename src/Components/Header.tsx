@@ -1,4 +1,4 @@
-import { Link, useMatch } from "react-router-dom";
+import { Link, useMatch, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import {
   motion,
@@ -7,6 +7,7 @@ import {
   useMotionValueEvent,
 } from "framer-motion";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 const Nav = styled(motion.nav)`
   display: flex;
@@ -62,7 +63,8 @@ const Circle = styled(motion.span)`
   border-radius: 3px;
   background-color: ${(props) => props.theme.red};
 `;
-const Search = styled.span`
+const Search = styled.form`
+  // form 요소여야만 OnSubmitdl 정상작동
   position: relative;
   color: white;
   display: flex;
@@ -108,6 +110,10 @@ const LogoVariants = {
   },
 };
 
+interface IForm {
+  keyword: string;
+}
+
 function Header() {
   const homeMatch = useMatch("/"); // React Router에서 현재 경로url이 특정 경로와 일치하는지 확인하는 훅
   const tvMatch = useMatch("tv");
@@ -122,6 +128,12 @@ function Header() {
       navAnimation.start("scroll"); // 스크롤 내려가면 scroll 애니메이션 실행
     }
   });
+  const { register, handleSubmit } = useForm<IForm>();
+  const navigate = useNavigate();
+  const onValid = (data: IForm) => {
+    navigate(`/search?keyword=${data.keyword}`);
+  };
+
   return (
     <Nav variants={NavVariants} animate={navAnimation} initial={"top"}>
       <Col>
@@ -154,7 +166,7 @@ function Header() {
         </Items>
       </Col>
       <Col>
-        <Search>
+        <Search onSubmit={handleSubmit(onValid)}>
           <motion.svg
             animate={{ x: searchOpen ? -160 : 0 }} // 돋보기 누를 때 아이콘 위치 변경
             onClick={openSearch}
@@ -170,6 +182,7 @@ function Header() {
             ></path>
           </motion.svg>
           <Input
+            {...register("keyword", { required: true, minLength: 2 })}
             animate={{ scaleX: searchOpen ? 1 : 0 }} // 돋보기 누를 때 input창의 사이즈 조절
             transition={{ type: "linear" }}
             placeholder="title, actor, genre"
